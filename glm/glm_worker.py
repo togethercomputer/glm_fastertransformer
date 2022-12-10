@@ -1,10 +1,6 @@
-from __future__ import print_function
-
 import sys
 import ctypes
-
 sys.setdlopenflags(sys.getdlopenflags() | ctypes.RTLD_GLOBAL)
-
 from torch.nn.utils.rnn import pad_sequence
 import random
 import os
@@ -16,10 +12,9 @@ import torch
 
 torch.manual_seed(42)
 
-
 from utils.glm import Glm
-
 sys.setdlopenflags(sys.getdlopenflags() ^ ctypes.RTLD_GLOBAL)
+
 from icetk_glm_130B import _IceTokenizer
 tokenizer = _IceTokenizer()
 
@@ -44,10 +39,8 @@ parser.add_argument('--pipeline_para_size', type=int, default=1,
                     help='pipeline parallel size')
 parser.add_argument('--ckpt_path', type=str,
                     help='path to the checkpoint file.')
-parser.add_argument('--lib_path', 
-                    type=str, 
-                    default='/FasterTransformer/build/lib', help='path to the fastertransformer lib folder.'
-                   )
+parser.add_argument('--lib_path', type=str, default='./lib',
+                    help='path to the fastertransformer lib folder.')
 parser.add_argument('--start_id', type=int, default=150004,
                     help='start token id.')
 parser.add_argument('--end_id', type=int, default=150001,
@@ -157,11 +150,8 @@ def tokenize(contexts, pad = True):
     
     return get_ids(contexts)
 
-@app.route('/tokenize', methods=["POST"])
-def get_tokenize():
-    config = request.get_data().decode()
-    if config is None or config == "":
-        return make_response("Config can not be empty.", 500)
+
+def get_tokenize(config):
     config = json.loads(config)
 
     contexts = config["text"].splitlines()
@@ -174,13 +164,7 @@ def get_tokenize():
         "mask_positions": mask_positions.tolist()
     }),200)
 
-@app.route('/generate', methods=["POST"])
-def get_generate():
-    config = request.get_data().decode()
-    if config is None or config == "":
-        return make_response("Config can not be empty.", 500)
-    config = json.loads(config)
-
+def get_generate(config):
     contexts = config["prompt"]
 
     if isinstance(contexts, str):
@@ -247,7 +231,6 @@ if __name__ == "__main__":
             return ["length too long"]
 
         if torch.distributed.get_rank() == 0:
-            print('info', [start_ids, start_lengths, mask_positions, seed, max_tokens, min_tokens, sampling_strategy, num_beams, length_penalty, no_repeat_ngram_size, temperature, top_k, top_p, regix])
             dist.broadcast_object_list([start_ids, start_lengths, mask_positions, seed, max_tokens, min_tokens, sampling_strategy, num_beams, length_penalty, no_repeat_ngram_size, temperature, top_k, top_p, regix], src=0)
 
         try:
@@ -294,7 +277,7 @@ if __name__ == "__main__":
 
     # from https://github.com/hanyullai/GLM-130B/commit/a0ad56b76650eee679123fcc26bb92d2b3b49cb2
     if torch.distributed.get_rank() == 0:
-        app.run(host="0.0.0.0")
+        get_generate({"prompt": "test"})
     else:
         while True:
             info = [None, None, None, None, None, None, None, None, None, None, None, None, None, None]
