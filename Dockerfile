@@ -1,4 +1,4 @@
-FROM xzyaoi/glm_fastertransformer:0.0.3
+FROM xzyaoi/glm_fastertransformer:titanxp-0.0.1
 
 RUN mkdir /app
 ADD . /app
